@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IT Learning Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      border-radius: 20px;
+      padding: 25px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 2em;
+    }
+
+    .logo-text h1 {
+      font-size: 1.5rem;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .logo-text p {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .upload-btn {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.3s ease;
+    }
+
+    .upload-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .logout {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.3s ease;
+    }
+
+    .logout:hover {
+      transform: translateY(-2px);
+    }
+
+    .hero {
+      background: white;
+      border-radius: 20px;
+      padding: 60px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .hero-text h1 {
+      font-size: 2.5rem;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .hero-text p {
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .hero img {
+      width: 400px;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 15px;
+    }
+
+    .filter {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 40px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter h3 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 12px 25px;
+      border: 2px solid #e0e0e0;
+      background: white;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #666;
+    }
+
+    .filter-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      padding: 25px;
+      color: white;
+      font-weight: 700;
+    }
+
+    .card-header h2 {
+      font-size: 1.4rem;
+    }
+
+    .card-header.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-header.indigo { background: linear-gradient(135deg, #5b86e5 0%, #36d1dc 100%); }
+    .card-header.purple { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+    .card-header.pink { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+    .card-body {
+      padding: 25px;
+    }
+
+    .materials-count {
+      display: inline-block;
+      background: #f8f9fa;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    /* ── NEW: Type preview pills ── */
+    .type-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      min-height: 32px;
+    }
+
+    .type-pill {
+      background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
+      color: #4c51bf;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      border: 1px solid rgba(102,126,234,0.3);
+    }
+
+    .view {
+      display: inline-block;
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .view:hover {
+      color: #764ba2;
+      transform: translateX(5px);
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        flex-direction: column;
+        padding: 30px;
+      }
+      .hero img {
+        width: 100%;
+        margin-top: 20px;
+      }
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        <img src="logo.png" alt="TechNoteCore Logo" style="width: 50px; height: 50px; border-radius: 8px;">
+        <div class="logo-text">
+          <h1>TechNoteCore</h1>
+          <p>Comprehensive Note Management System</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="upload.html" class="upload-btn">Upload</a>
+        <a href="#" class="logout" onclick="handleLogout()">Logout</a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-text">
+        <h1>Welcome to TechNoteCore</h1>
+        <p>Access all your semesters, syllabus, notes, and questions in one place</p>
+      </div>
+      <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f" alt="Notes" />
+    </section>
+
+    <section class="filter">
+      <h3>🎓 Choose Semester</h3>
+      <div class="filter-buttons">
+        <button class="filter-btn active" data-semester="all">All Semesters</button>
+        <button class="filter-btn" data-semester="1st Semester">Semester 1</button>
+        <button class="filter-btn" data-semester="2nd Semester">Semester 2</button>
+        <button class="filter-btn" data-semester="3rd Semester">Semester 3</button>
+        <button class="filter-btn" data-semester="4th Semester">Semester 4</button>
+        <button class="filter-btn" data-semester="5th Semester">Semester 5</button>
+        <button class="filter-btn" data-semester="6th Semester">Semester 6</button>
+        <button class="filter-btn" data-semester="7th Semester">Semester 7</button>
+        <button class="filter-btn" data-semester="8th Semester">Semester 8</button>
+      </div>
+    </section>
+
+    <section class="cards" id="cards-container">
+      <!-- Cards will be dynamically generated here -->
+    </section>
+
+  </div>
+
+  <script>
+    let allMaterials = [];
+
+    async function loadUploadedNotes() {
+      try {
+        const res = await fetch('http://localhost:5000/materials');
+        const data = await res.json();
+
+        allMaterials = Array.isArray(data) ? data : (data.data || []);
+
+        console.log('Loaded materials:', allMaterials);
+
+        displaySemesterCards();
+
+      } catch (err) {
+        console.error("Could not load dynamic notes:", err);
+      }
+    }
+
+    function getCardColor(semNumber) {
+      const colors = ['blue', 'indigo', 'purple', 'pink', 'purple', 'blue', 'indigo', 'purple'];
+      return colors[(semNumber - 1) % colors.length];
+    }
+
+    function getTypeEmoji(type) {
+      const emojis = {
+        'Syllabus': '📜',
+        'Notes': '📝',
+        'Question': '❓',
+        'Previous Question': '📋',
+        'Assignment': '📌',
+        'Slides': '🖼️',
+        'Lab Manual': '🧪',
+        'Others': '📦'
+      };
+      return emojis[type] || '📄';
+    }
+
+    function displaySemesterCards() {
+      const cardsContainer = document.getElementById('cards-container');
+      cardsContainer.innerHTML = '';
+
+      const semesterGroups = {};
+      const typeCountsPerSemester = {};
+
+      // Group materials and count types per semester
+      allMaterials.forEach(item => {
+        const semester = item.semester || 'Unknown';
+        if (!semesterGroups[semester]) {
+          semesterGroups[semester] = [];
+          typeCountsPerSemester[semester] = {};
+        }
+        semesterGroups[semester].push(item);
+
+        const t = item.type || 'Others';
+        typeCountsPerSemester[semester][t] = (typeCountsPerSemester[semester][t] || 0) + 1;
+      });
+
+      // Create cards for semesters 1 to 8
+      for (let i = 1; i <= 8; i++) {
+        const semesterName = `${i}${i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th'} Semester`;
+        const semesterMaterials = semesterGroups[semesterName] || [];
+        const typeCounts = typeCountsPerSemester[semesterName] || {};
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.semester = semesterName;
+
+        const color = getCardColor(i);
+        const materialsCount = semesterMaterials.length;
+
+        let typeHtml = '';
+        const order = ['Syllabus', 'Notes', 'Question', 'Previous Question', 'Assignment', 'Slides', 'Lab Manual', 'Others'];
+
+        order.forEach(t => {
+          if (typeCounts[t]) {
+            typeHtml += `
+              <span class="type-pill">
+                ${getTypeEmoji(t)} ${t} (${typeCounts[t]})
+              </span>
+            `;
+          }
+        });
+
+        if (!typeHtml) {
+          typeHtml = '<span style="color:#718096; font-size:0.9rem;">No materials yet</span>';
+        }
+
+        card.innerHTML = `
+          <div class="card-header ${color}">
+            <h2>${semesterName}</h2>
+          </div>
+          <div class="card-body">
+            <span class="materials-count">📚 ${materialsCount} Material${materialsCount !== 1 ? 's' : ''} Available</span>
+            
+            <div class="type-preview">
+              ${typeHtml}
+            </div>
+
+            <a href="semester.html?semester=${encodeURIComponent(semesterName)}" class="view">View Details →</a>
+          </div>
+        `;
+
+        cardsContainer.appendChild(card);
+
+        // Make entire card clickable (except links/buttons inside)
+        card.addEventListener('click', (e) => {
+          if (!e.target.closest('a')) {
+            window.location.href = `semester.html?semester=${encodeURIComponent(semesterName)}`;
+          }
+        });
+      }
+    }
+
+    // Filter buttons behavior
+    document.addEventListener('DOMContentLoaded', () => {
+      const filterButtons = document.querySelectorAll('.filter-btn');
+
+      filterButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+
+          filterButtons.forEach(btn => btn.classList.remove('active'));
+          e.target.classList.add('active');
+
+          const semester = e.target.dataset.semester;
+
+          if (semester === 'all') {
+            displaySemesterCards();
+          } else {
+            window.location.href = `semester.html?semester=${encodeURIComponent(semester)}`;
+          }
+        });
+      });
+    });
+
+    window.onload = loadUploadedNotes;
+  </script>
+
+  <script src="global.js"></script>
+
+</body>
+</html>

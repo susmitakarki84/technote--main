@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Login System | TechNoteCore</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+  <div class="container">
+    <div class="left">
+      <div class="overlay">
+        <h1>TechNoteCore</h1>
+        <p>Empowering productivity through smarter notes</p>
+      </div>
+    </div>
+    <div class="right">
+      <div class="login-card">
+        <h2>Welcome Back</h2>
+        <h5>Defualt login</h5>
+        <p> user@example.com : userexample1234@USER</p>
+        <p id="error-msg" style="color: red; display: none; margin-bottom: 10px; font-weight: bold;"></p>
+        <p id="success-msg" style="color: green; display: none; margin-bottom: 10px; font-weight: bold;">Login
+          successful! Redirecting...</p>
+
+        <form id="loginForm">
+          <label>Email Address</label>
+          <input type="email" id="email" placeholder="your.email@example.com" required />
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required />
+          <button type="submit" id="loginBtn">Sign In</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('error-msg');
+    const successMsg = document.getElementById('success-msg');
+    const loginBtn = document.getElementById('loginBtn');
+
+    let countdownInterval;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+
+      // Disable button during login
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in...';
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('http://localhost:5000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Store authentication token and user information
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('userEmail', data.user.email);
+          localStorage.setItem('userRole', data.user.role);
+
+          // Show success message
+          successMsg.textContent = 'Login successful! Redirecting...';
+          successMsg.style.display = 'block';
+
+          // Redirect based on user role
+          setTimeout(() => {
+            if (data.user.role === 'admin' || 'user' || 'superadmin') {
+              window.location.href = "dashboard.html";
+            } else {
+              window.location.href = "dashboard.html";
+            }
+          }, 1000);
+
+        } else {
+          // Show error message with styling based on type
+          errorMsg.textContent = data.message || 'Login failed';
+
+          if (data.isLocked || response.status === 429) {
+            // Lockout message - red background with bold text
+            errorMsg.style.backgroundColor = '#f8d7da';
+            errorMsg.style.border = '1px solid #f5c6cb';
+            errorMsg.style.padding = '10px';
+            errorMsg.style.borderRadius = '5px';
+
+            // If lockout time is provided, show countdown and disable login
+            if (data.lockoutTime) {
+              startCountdown(data.lockoutTime);
+            }
+          } else if (data.remainingAttempts !== undefined) {
+            // Warning message for remaining attempts - yellow background
+            errorMsg.style.backgroundColor = '#fff3cd';
+            errorMsg.style.border = '1px solid #ffeaa7';
+            errorMsg.style.padding = '10px';
+            errorMsg.style.borderRadius = '5px';
+            // Re-enable button
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+          } else {
+            // Default error message
+            errorMsg.style.backgroundColor = 'transparent';
+            errorMsg.style.border = 'none';
+            errorMsg.style.padding = '0';
+            // Re-enable button
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+          }
+
+          errorMsg.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        errorMsg.textContent = "Cannot connect to server. Please check if the backend is running.";
+        errorMsg.style.display = 'block';
+
+        // Re-enable button
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    });
+
+    function startCountdown(seconds) {
+      let remainingSeconds = seconds;
+
+      // Disable login form inputs
+      document.getElementById('email').disabled = true;
+      document.getElementById('password').disabled = true;
+      loginBtn.disabled = true;
+
+      // Update countdown every second
+      countdownInterval = setInterval(() => {
+        remainingSeconds--;
+        errorMsg.textContent = `Account locked. Please try again in ${remainingSeconds} seconds.`;
+
+        if (remainingSeconds <= 0) {
+          clearInterval(countdownInterval);
+          // Re-enable login form
+          document.getElementById('email').disabled = false;
+          document.getElementById('password').disabled = false;
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign In';
+          errorMsg.style.display = 'none';
+        }
+      }, 1000);
+    }
+
+    // Check if user is already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('authToken');
+      const userRole = localStorage.getItem('userRole');
+
+      if (token) {
+        if (userRole === 'admin' || 'user' || 'superadmin') {
+          window.location.href = "dashboard.html";
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Uploaded Materials</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="sidebar.css">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --surface-2: #f0eeea;
+            --border: #e4e1db;
+            --text: #1a1917;
+            --text-2: #6b6860;
+            --text-3: #9e9b96;
+            --accent: #2563eb;
+            --accent-light: #eff4ff;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── TOP BAR ── */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 28px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .top-bar-left h2 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: -.01em;
+            color: var(--text);
+        }
+
+        .hamburger {
+            font-size: 1.1rem;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: color .2s;
+        }
+        .hamburger:hover { color: var(--text); }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            background: var(--surface-2);
+            border-radius: 999px;
+            border: 1px solid var(--border);
+        }
+
+        .profile img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile span {
+            font-size: .82rem;
+            font-weight: 500;
+            color: var(--text-2);
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* ── MAIN ── */
+        .main-content {
+            padding: 0;
+        }
+
+        .page-wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 36px 28px;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .page-header-text h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -.02em;
+            margin-bottom: 4px;
+        }
+
+        .page-header-text p {
+            font-size: .9rem;
+            color: var(--text-2);
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: .82rem;
+            color: var(--text-2);
+            font-family: 'DM Mono', monospace;
+        }
+
+        .user-badge i { color: var(--accent); font-size: .85rem; }
+
+        /* ── STATUS MSG ── */
+        .status-message {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: var(--radius-sm);
+            font-size: .9rem;
+            font-weight: 500;
+            animation: fadeDown .3s ease;
+        }
+
+        @keyframes fadeDown {
+            from { opacity:0; transform:translateY(-8px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .status-success { background:var(--success-light); color:var(--success); border:1px solid #bbf7d0; }
+        .status-error   { background:var(--danger-light);  color:var(--danger);  border:1px solid #fecaca; }
+
+        /* ── MATERIALS GRID ── */
+        .materials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        /* ── MATERIAL CARD ── */
+        .material-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: var(--shadow);
+            transition: box-shadow .2s, transform .2s, border-color .2s;
+        }
+
+        .material-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+            border-color: #d1cec7;
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .material-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -.01em;
+            line-height: 1.3;
+        }
+
+        /* Status pill */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-pending  { background: var(--warning-light); color: var(--warning); }
+        .status-approved { background: var(--success-light); color: var(--success); }
+        .status-rejected { background: var(--danger-light);  color: var(--danger);  }
+
+        /* Meta items */
+        .meta-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: .85rem;
+            color: var(--text-2);
+        }
+
+        .meta-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface-2);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .meta-icon i {
+            font-size: .72rem;
+            color: var(--accent);
+        }
+
+        .meta-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Description */
+        .description-text {
+            font-size: .83rem;
+            color: var(--text-3);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Card actions */
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 4px;
+            border-top: 1px solid var(--border);
+            margin-top: 2px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: .83rem;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all .15s;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn i { font-size: .8rem; }
+
+        .btn-view {
+            background: var(--accent-light);
+            color: var(--accent);
+            border: 1px solid #bfdbfe;
+        }
+        .btn-view:hover { background: #dbeafe; }
+
+        .btn-edit {
+            background: var(--surface-2);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+        }
+        .btn-edit:hover { background: var(--border); color: var(--text); }
+
+        .btn-delete {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 1px solid #fecaca;
+        }
+        .btn-delete:hover { background: #fee2e2; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 24px;
+            grid-column: 1/-1;
+        }
+
+        .empty-icon {
+            width: 72px;
+            height: 72px;
+            background: var(--surface-2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            border: 1px solid var(--border);
+        }
+
+        .empty-icon i {
+            font-size: 1.8rem;
+            color: var(--text-3);
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: .9rem;
+            color: var(--text-2);
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--accent);
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: .9rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background .15s;
+        }
+
+        .btn-primary:hover { background: #1d4ed8; }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0,0,0,.4);
+            backdrop-filter: blur(4px);
+            animation: fadeIn .2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 480px;
+            margin: 8vh auto 0;
+            animation: slideUp .25s ease;
+            overflow: hidden;
+        }
+
+        @keyframes slideUp {
+            from { opacity:0; transform:translateY(20px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-head h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: var(--surface-2);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-2);
+            font-size: 1.1rem;
+            transition: all .15s;
+        }
+
+        .modal-close:hover { background: var(--border); color: var(--text); }
+
+        .modal-body { padding: 24px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group.full { grid-column: 1/-1; }
+
+        .form-group label {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-2);
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 9px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: .9rem;
+            color: var(--text);
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+            background: var(--surface);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-foot {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        .btn-save {
+            background: var(--accent);
+            color: white;
+            border: 1px solid transparent;
+            flex: none;
+        }
+        .btn-save:hover { background: #1d4ed8; }
+
+        .btn-cancel {
+            background: var(--surface);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+            flex: none;
+        }
+        .btn-cancel:hover { background: var(--surface-2); color: var(--text); }
+
+        /* ── ALERT ── */
+        .alert-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            background: rgba(0,0,0,.4);
+            backdrop-filter: blur(4px);
+            animation: fadeIn .2s ease;
+        }
+
+        .alert-box {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 380px;
+            margin: 20vh auto 0;
+            padding: 32px 28px 24px;
+            text-align: center;
+            animation: slideUp .25s ease;
+        }
+
+        .alert-icon-wrap {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            font-size: 1.4rem;
+        }
+
+        .alert-icon-wrap.warning { background: var(--warning-light); color: var(--warning); }
+        .alert-icon-wrap.success { background: var(--success-light); color: var(--success); }
+        .alert-icon-wrap.error   { background: var(--danger-light);  color: var(--danger);  }
+
+        .alert-title-text {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .alert-msg {
+            font-size: .88rem;
+            color: var(--text-2);
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .page-wrapper { padding: 24px 16px; }
+            .top-bar { padding: 14px 16px; }
+            .page-header { flex-direction: column; gap: 14px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full { grid-column: 1; }
+            .materials-grid { grid-template-columns: 1fr; }
+            .card-actions { gap: 6px; }
+            .btn { padding: 8px 10px; font-size: .8rem; }
+        }
+
+        @media (max-width: 480px) {
+            .profile span { display: none; }
+            .modal-box { margin-top: 4vh; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="main-content">
+
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <i class="fa-solid fa-bars hamburger" id="hamburger"></i>
+                    <h2>My Materials</h2>
+                </div>
+                <div class="profile">
+                    <img src="logo.png" alt="User">
+                    <span id="userEmail">Loading...</span>
+                </div>
+            </div>
+
+            <div class="page-wrapper">
+
+                <!-- PAGE HEADER -->
+                <div class="page-header">
+                    <div class="page-header-text">
+                        <h1>My Uploaded Materials</h1>
+                        <p>Manage and track everything you've contributed</p>
+                    </div>
+                    <div class="user-badge">
+                        <i class="fas fa-user"></i>
+                        <span id="displayEmail">Loading...</span>
+                    </div>
+                </div>
+
+                <!-- STATUS MESSAGE -->
+                <div id="statusMessage" class="status-message"></div>
+
+                <!-- MATERIALS GRID -->
+                <div class="materials-grid" id="materialsContainer">
+                    <!-- Cards injected here -->
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Edit Material</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editMaterialId">
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label>Title</label>
+                            <input type="text" id="editTitle" required placeholder="Material title" />
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="editType" required>
+                                <option value="">Select type</option>
+                                <option>Notes</option>
+                                <option>Syllabus</option>
+                                <option>Previous Question</option>
+                                <option>Slides</option>
+                                <option>Lab Manual</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Semester</label>
+                            <select id="editSemester" required>
+                                <option value="">Select semester</option>
+                                <option>1st Semester</option>
+                                <option>2nd Semester</option>
+                                <option>3rd Semester</option>
+                                <option>4th Semester</option>
+                                <option>5th Semester</option>
+                                <option>6th Semester</option>
+                                <option>7th Semester</option>
+                                <option>8th Semester</option>
+                            </select>
+                        </div>
+                        <div class="form-group full">
+                            <label>Subject</label>
+                            <input type="text" id="editSubject" required placeholder="Subject name" />
+                        </div>
+                        <div class="form-group full">
+                            <label>Description</label>
+                            <textarea id="editDescription" placeholder="Optional description..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-cancel" id="cancelEdit">Cancel</button>
+                <button type="submit" form="editForm" class="btn btn-save">
+                    <i class="fas fa-check"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALERT MODAL -->
+    <div id="alertModal" class="alert-overlay">
+        <div class="alert-box">
+            <div class="alert-icon-wrap" id="alertIcon"></div>
+            <div class="alert-title-text" id="alertTitle"></div>
+            <div class="alert-msg" id="alertMessage"></div>
+            <div class="alert-actions">
+                <button class="btn btn-cancel" id="alertCancel">Cancel</button>
+                <button class="btn btn-delete" id="alertConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="global.js"></script>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+
+        const token = localStorage.getItem('authToken');
+        const userEmail = localStorage.getItem('userEmail');
+
+        if (!token || !userEmail) {
+            showAlert('Login Required', 'Please login to view your materials', 'error', () => {
+                window.location.href = 'index.html';
+            });
+        }
+
+        document.getElementById('userEmail').textContent = userEmail;
+        document.getElementById('displayEmail').textContent = userEmail;
+
+        const statusMsg = document.getElementById('statusMessage');
+        const materialsContainer = document.getElementById('materialsContainer');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+
+        document.addEventListener('DOMContentLoaded', loadUserMaterials);
+
+        async function loadUserMaterials() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/my-materials`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (result.success) displayMaterials(result.data);
+                else showStatus(result.message || 'Error loading materials', 'error');
+            } catch {
+                showStatus('Error connecting to server', 'error');
+            }
+        }
+
+        function displayMaterials(materials) {
+            if (!materials || materials.length === 0) {
+                materialsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <h3>No materials yet</h3>
+                        <p>You haven't uploaded anything. Start contributing!</p>
+                        <a href="upload.html" class="btn-primary"><i class="fas fa-plus"></i> Upload Material</a>
+                    </div>`;
+                return;
+            }
+
+            materialsContainer.innerHTML = materials.map(m => `
+                <div class="material-card" data-id="${m._id}">
+                    <div class="card-top">
+                        <h3 class="material-title">${m.title}</h3>
+                        <span class="status-pill status-${m.status}">${m.status}</span>
+                    </div>
+                    <div class="meta-list">
+                        <div class="meta-item">
+                            <div class="meta-icon"><i class="fas fa-file-pdf"></i></div>
+                            <span class="meta-text">${m.fileName}</span>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-icon"><i class="fas fa-book-open"></i></div>
+                            <span class="meta-text">${m.subject}</span>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-icon"><i class="fas fa-tag"></i></div>
+                            <span class="meta-text">${m.type}</span>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-icon"><i class="fas fa-calendar-alt"></i></div>
+                            <span class="meta-text">${new Date(m.uploadedAt).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' })}</span>
+                        </div>
+                    </div>
+                    ${m.description ? `<p class="description-text">${m.description}</p>` : ''}
+                    <div class="card-actions">
+                        <button class="btn btn-view" onclick="viewMaterial('${m.fileUrl}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-edit" onclick="editMaterial('${m._id}')">
+                            <i class="fas fa-pencil"></i> Edit
+                        </button>
+                        <button class="btn btn-delete" onclick="deleteMaterial('${m._id}')">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </div>
+                </div>`).join('');
+        }
+
+        window.viewMaterial = (url) => window.open(url, '_blank');
+
+        window.editMaterial = (id) => {
+            fetch(`${API_BASE_URL}/materials/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        const m = result.data;
+                        document.getElementById('editMaterialId').value = m._id;
+                        document.getElementById('editTitle').value = m.title;
+                        document.getElementById('editType').value = m.type;
+                        document.getElementById('editSemester').value = m.semester;
+                        document.getElementById('editSubject').value = m.subject;
+                        document.getElementById('editDescription').value = m.description;
+                        editModal.style.display = 'block';
+                    } else {
+                        showStatus(result.message || 'Error loading material', 'error');
+                    }
+                })
+                .catch(() => showStatus('Error connecting to server', 'error'));
+        };
+
+        window.deleteMaterial = (id) => {
+            showAlert('Delete Material', 'Are you sure? This action cannot be undone.', 'warning', () => {
+                fetch(`${API_BASE_URL}/materials/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                    .then(r => r.json())
+                    .then(result => {
+                        if (result.success) { showStatus('Material deleted', 'success'); loadUserMaterials(); }
+                        else showStatus(result.message || 'Error deleting material', 'error');
+                    })
+                    .catch(() => showStatus('Error connecting to server', 'error'));
+            });
+        };
+
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editMaterialId').value;
+            const data = {
+                title: document.getElementById('editTitle').value,
+                type: document.getElementById('editType').value,
+                semester: document.getElementById('editSemester').value,
+                subject: document.getElementById('editSubject').value,
+                description: document.getElementById('editDescription').value
+            };
+            try {
+                const response = await fetch(`${API_BASE_URL}/materials/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    editModal.style.display = 'none';
+                    showStatus('Material updated successfully', 'success');
+                    loadUserMaterials();
+                } else {
+                    showStatus(result.message || 'Error updating material', 'error');
+                }
+            } catch {
+                showStatus('Error connecting to server', 'error');
+            }
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => editModal.style.display = 'none');
+        document.getElementById('cancelEdit').addEventListener('click', () => editModal.style.display = 'none');
+        window.addEventListener('click', (e) => { if (e.target === editModal) editModal.style.display = 'none'; });
+
+        function showAlert(title, message, iconType, confirmCallback) {
+            const alertModal = document.getElementById('alertModal');
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+
+            const icons = { warning: 'fa-exclamation-triangle', success: 'fa-check-circle', error: 'fa-times-circle' };
+            const iconEl = document.getElementById('alertIcon');
+            iconEl.className = `alert-icon-wrap ${iconType}`;
+            iconEl.innerHTML = `<i class="fas ${icons[iconType] || icons.error}"></i>`;
+
+            alertModal.style.display = 'block';
+
+            document.getElementById('alertCancel').onclick = () => alertModal.style.display = 'none';
+            document.getElementById('alertConfirm').onclick = () => {
+                alertModal.style.display = 'none';
+                if (confirmCallback) confirmCallback();
+            };
+
+            window.addEventListener('click', (e) => {
+                if (e.target === alertModal) alertModal.style.display = 'none';
+            }, { once: true });
+        }
+
+        function showStatus(message, type) {
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation' };
+            statusMsg.innerHTML = `<i class="fas ${icons[type] || icons.error}"></i>${message}`;
+            statusMsg.className = `status-message status-${type}`;
+            statusMsg.style.display = 'flex';
+            setTimeout(() => statusMsg.style.display = 'none', 5000);
+        }
+    </script>
+
+</body>
+</html>

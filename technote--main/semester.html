@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semester Details - TechNoteCore</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      border-radius: 20px;
+      padding: 25px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 2em;
+    }
+
+    .logo-text h1 {
+      font-size: 1.5rem;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .logo-text p {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 15px;
+    }
+
+    .back-btn,
+    .logout {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.3s ease;
+    }
+
+    .back-btn:hover,
+    .logout:hover {
+      transform: translateY(-2px);
+    }
+
+    .semester-header {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .semester-header h1 {
+      font-size: 2.5rem;
+      color: #333;
+    }
+
+    .semester-header p {
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    /* ── ACCORDION / FOLDER STYLE ── */
+    .materials-grid {
+      display: block; /* Changed from grid to block for accordions */
+    }
+
+    .accordion-folder {
+      background: white;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .accordion-folder:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    }
+
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 28px;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+      transition: background 0.25s;
+    }
+
+    .accordion-header:hover {
+      background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15));
+    }
+
+    .accordion-header h2 {
+      font-size: 1.45rem;
+      margin: 0;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .accordion-header::after {
+      content: '▼';
+      font-size: 1.2rem;
+      color: #667eea;
+      transition: transform 0.35s ease;
+    }
+
+    .accordion-header.active::after {
+      transform: rotate(180deg);
+    }
+
+    .accordion-content {
+      display: none;
+      padding: 24px 28px;
+      background: white;
+    }
+
+    .accordion-content.active {
+      display: block;
+    }
+
+    /* Inner grid for material cards inside each folder */
+    .accordion-content .inner-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 24px;
+    }
+
+    .material-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+    }
+
+    .material-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+      border-color: #cbd5e1;
+    }
+
+    .material-thumbnail {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .material-content {
+      padding: 22px;
+    }
+
+    .material-type {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .material-title {
+      font-size: 1.28rem;
+      color: #1a202c;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .material-subject {
+      font-size: 1rem;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .material-description {
+      font-size: 0.92rem;
+      color: #4a5568;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .material-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #edf2f7;
+      padding-top: 14px;
+    }
+
+    .material-date {
+      font-size: 0.88rem;
+      color: #718096;
+    }
+
+    .view-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 9px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .view-btn:hover {
+      opacity: 0.92;
+      transform: scale(1.04);
+    }
+
+    .no-materials {
+      background: white;
+      padding: 60px;
+      border-radius: 20px;
+      text-align: center;
+      color: #718096;
+      font-size: 1.1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        📘
+        <div class="logo-text">
+          <h1>TechNoteCore</h1>
+          <p>Comprehensive Note Management System</p>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <a href="dashboard.html" class="back-btn">← Back</a>
+        <a href="#" class="logout" onclick="handleLogout()">Logout</a>
+      </div>
+    </header>
+
+    <section class="semester-header">
+      <h1 id="semester-title">Loading...</h1>
+      <p id="semester-count">Loading materials...</p>
+    </section>
+
+    <section class="materials-grid" id="materials-container"></section>
+
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const semesterName = urlParams.get('semester');
+
+    async function loadSemesterMaterials() {
+      if (!semesterName) {
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      document.getElementById('semester-title').textContent = semesterName;
+
+      try {
+        const res = await fetch(`http://localhost:5000/materials?semester=${encodeURIComponent(semesterName)}`);
+        const data = await res.json();
+        const materials = Array.isArray(data) ? data : (data.data || []);
+
+        document.getElementById('semester-count').textContent =
+          `${materials.length} Material${materials.length !== 1 ? 's' : ''} Available`;
+
+        displayMaterials(materials);
+
+      } catch (err) {
+        console.error(err);
+        displayNoMaterials();
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'Unknown date';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function displayMaterials(materials) {
+      const container = document.getElementById('materials-container');
+      container.innerHTML = '';
+
+      if (!materials.length) {
+        displayNoMaterials();
+        return;
+      }
+
+      const grouped = {};
+      materials.forEach(mat => {
+        const type = mat.type || 'Others';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(mat);
+      });
+
+      // Order of folders
+      const order = [
+        'Syllabus',
+        'Notes',
+        'Question',
+        'Previous Question',
+        'Assignment',
+        'Slides',
+        'Lab Manual',
+        'Others'
+      ];
+
+      order.forEach(type => {
+        if (!grouped[type] || grouped[type].length === 0) return;
+
+        const folder = document.createElement('div');
+        folder.className = 'accordion-folder';
+
+        const header = document.createElement('div');
+        header.className = 'accordion-header';
+        header.innerHTML = `
+          <h2>📁 ${type} <span style="color:#718096; font-size:1.1rem;">(${grouped[type].length})</span></h2>
+        `;
+
+        const content = document.createElement('div');
+        content.className = 'accordion-content';
+
+        const innerGrid = document.createElement('div');
+        innerGrid.className = 'inner-grid';
+
+        grouped[type].forEach(material => {
+          innerGrid.appendChild(createCard(material));
+        });
+
+        content.appendChild(innerGrid);
+
+        folder.appendChild(header);
+        folder.appendChild(content);
+
+        // Toggle accordion
+        header.addEventListener('click', () => {
+          content.classList.toggle('active');
+          header.classList.toggle('active');
+        });
+
+        container.appendChild(folder);
+      });
+    }
+
+    function createCard(material) {
+      const card = document.createElement('div');
+      card.className = 'material-card';
+
+      const pdfUrl = material.fileUrl || '#';
+      const uploadDate = formatDate(material.uploadedAt);
+
+      card.innerHTML = `
+        <div class="material-thumbnail"></div>
+        <div class="material-content">
+          <span class="material-type">${material.type || 'Material'}</span>
+          <div class="material-title">${material.title}</div>
+          <div class="material-subject">📖 ${material.subject || 'General'}</div>
+          <div class="material-description">${material.description || 'No description available.'}</div>
+          <div class="material-meta">
+            <span class="material-date">📅 ${uploadDate}</span>
+            <a href="${pdfUrl}" target="_blank" class="view-btn" onclick="event.stopPropagation()">View PDF</a>
+          </div>
+        </div>
+      `;
+
+      // Click anywhere on card → open PDF (except the View button which already has stopPropagation)
+      card.addEventListener('click', () => {
+        if (pdfUrl !== '#') window.open(pdfUrl, '_blank');
+      });
+
+      return card;
+    }
+
+    function displayNoMaterials() {
+      const container = document.getElementById('materials-container');
+      container.innerHTML = `
+        <div class="no-materials">
+          <h3>📚 No Materials Found</h3>
+          <p>No study materials available for this semester yet.</p>
+        </div>
+      `;
+    }
+
+    window.onload = loadSemesterMaterials;
+  </script>
+
+  <script src="global.js"></script>
+
+</body>
+</html>

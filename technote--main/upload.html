@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload Study Materials</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sidebar.css">
+  <link rel="stylesheet" href="upload.css">
+
+  <style>
+    .status-message {
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      display: none;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .user-info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .user-info p {
+      margin: 5px 0;
+      color: #666;
+    }
+
+    .user-info strong {
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main-content">
+
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <i class="fa-solid fa-bars hamburger" id="hamburger"></i>
+          <h2>Upload Materials</h2>
+        </div>
+
+        <div class="profile">
+          <img src="logo.png" alt="User">
+          <span id="userEmail">Loading...</span>
+        </div>
+      </div>
+
+      <div class="card">
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <div class="user-info">
+          <p><strong>Logged in as:</strong> <span id="displayEmail">Loading...</span></p>
+          <p><strong>Note:</strong> All uploads are pending approval by admin</p>
+        </div>
+
+        <h2>Upload Study Materials</h2>
+
+        <form id="uploadForm">
+
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" id="title" placeholder="e.g. Data Structures Notes" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Material Type *</label>
+              <select id="type" required>
+                <option value="">Select type</option>
+                <option>Notes</option>
+                <option>Syllabus</option>
+                <option>Previous Question</option>
+                <option>Slides</option>
+                <option>Lab Manual</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Semester *</label>
+              <select id="semester" required>
+                <option value="">Select semester</option>
+                <option>1st Semester</option>
+                <option>2nd Semester</option>
+                <option>3rd Semester</option>
+                <option>4th Semester</option>
+                <option>5th Semester</option>
+                <option>6th Semester</option>
+                <option>7th Semester</option>
+                <option>8th Semester</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Subject *</label>
+            <input type="text" id="subject" placeholder="e.g. Web Technology" required />
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="description" placeholder="Short description..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Upload File (PDF Only) *</label>
+            <input type="file" id="file" accept=".pdf" required />
+            <span class="helper-text">Allowed: PDF only (Max 10MB)</span>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="submit-btn" id="submitBtn">Upload Material</button>
+          </div>
+
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="global.js"></script>
+
+  <script>
+    // ========== API CONFIGURATION ==========
+    const API_BASE_URL = 'http://localhost:5000';
+
+    // Check if user is logged in and get user info
+    const token = localStorage.getItem('authToken');
+    const userEmail = localStorage.getItem('userEmail');
+
+    if (!token || !userEmail) {
+      alert('Please login to upload materials');
+      window.location.href = 'index.html';
+    }
+
+    // Display user email
+    document.getElementById('userEmail').textContent = userEmail;
+    document.getElementById('displayEmail').textContent = userEmail;
+
+    const form = document.getElementById('uploadForm');
+    const statusMsg = document.getElementById('statusMessage');
+    const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('file');
+
+    // File size validation (10MB max)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file && file.size > MAX_FILE_SIZE) {
+        alert('File size must be less than 10MB');
+        fileInput.value = '';
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Validate file before uploading
+      const file = fileInput.files[0];
+      if (!file) {
+        statusMsg.textContent = "Please select a file to upload";
+        statusMsg.className = "status-message status-error";
+        statusMsg.style.display = "block";
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        statusMsg.textContent = "File size must be less than 10MB";
+        statusMsg.className = "status-message status-error";
+        statusMsg.style.display = "block";
+        return;
+      }
+
+      // Visual feedback
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Uploading...";
+
+      const formData = new FormData();
+      formData.append('title', document.getElementById('title').value);
+      formData.append('type', document.getElementById('type').value);
+      formData.append('semester', document.getElementById('semester').value);
+      formData.append('subject', document.getElementById('subject').value);
+      formData.append('description', document.getElementById('description').value);
+      formData.append('file', file);
+
+      try {
+        // Use API_BASE_URL for backend endpoint
+        const response = await fetch(`${API_BASE_URL}/upload-material`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          statusMsg.textContent = result.message || "Material uploaded successfully and is pending approval!";
+          statusMsg.className = "status-message status-success";
+          form.reset();
+        } else {
+          statusMsg.textContent = result.message || "Upload failed. Please try again.";
+          statusMsg.className = "status-message status-error";
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        statusMsg.textContent = "Error: Could not connect to the server. Please check if the backend is running on port 5000.";
+        statusMsg.className = "status-message status-error";
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Upload Material";
+      statusMsg.style.display = "block";
+
+      setTimeout(() => {
+        statusMsg.style.display = "none";
+      }, 5000);
+    });
+  </script>
+
+</body>
+
+</html>
