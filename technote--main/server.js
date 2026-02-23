@@ -5,12 +5,17 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-const FormData = require('form-data');
-const axios = require('axios');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Initialize Supabase client
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SECRET_KEY
+);
 
 app.use(cors());
 app.use(express.json());
@@ -208,19 +213,31 @@ app.post('/upload-material', authMiddleware, upload.single('file'), async (req, 
             });
         }
 
-        // Upload to imgbb
-        const formData = new FormData();
-        formData.append('image', req.file.buffer.toString('base64'));
+        // Upload to Supabase (PDF files only)
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        const bucketName = process.env.SUPABASE_BUCKET || 'Tech note Org';
+        
+        const { data: supabaseData, error: supabaseError } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, req.file.buffer, {
+                contentType: 'application/pdf',
+                upsert: false
+            });
 
-        const imgbbResponse = await axios.post(
-            `https://api.imgbb.com/1/upload?key=${process.env.IMG_BB_KEY}`,
-            formData,
-            {
-                headers: formData.getHeaders()
-            }
-        );
+        if (supabaseError) {
+            console.error('Supabase upload error:', supabaseError);
+            return res.status(500).json({
+                success: false,
+                message: 'Error uploading file to storage'
+            });
+        }
 
-        const fileUrl = imgbbResponse.data.data.url;
+        // Get public URL for the uploaded file
+        const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+
+        const fileUrl = publicUrl;
 
         // Create new user upload with uploader info
         const userUpload = new UserUpload({
@@ -569,4 +586,4 @@ app.get('/admin/materials', authMiddleware, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-});
+}); 
