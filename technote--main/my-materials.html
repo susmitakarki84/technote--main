@@ -660,31 +660,8 @@
                             <label>Title</label>
                             <input type="text" id="editTitle" required placeholder="Material title" />
                         </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select id="editType" required>
-                                <option value="">Select type</option>
-                                <option>Notes</option>
-                                <option>Syllabus</option>
-                                <option>Previous Question</option>
-                                <option>Slides</option>
-                                <option>Lab Manual</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Semester</label>
-                            <select id="editSemester" required>
-                                <option value="">Select semester</option>
-                                <option>1st Semester</option>
-                                <option>2nd Semester</option>
-                                <option>3rd Semester</option>
-                                <option>4th Semester</option>
-                                <option>5th Semester</option>
-                                <option>6th Semester</option>
-                                <option>7th Semester</option>
-                                <option>8th Semester</option>
-                            </select>
-                        </div>
+                       
+                       
                         <div class="form-group full">
                             <label>Subject</label>
                             <input type="text" id="editSubject" required placeholder="Subject name" />
@@ -816,8 +793,6 @@
                         const m = result.data;
                         document.getElementById('editMaterialId').value = m._id;
                         document.getElementById('editTitle').value = m.title;
-                        document.getElementById('editType').value = m.type;
-                        document.getElementById('editSemester').value = m.semester;
                         document.getElementById('editSubject').value = m.subject;
                         document.getElementById('editDescription').value = m.description;
                         editModal.style.display = 'block';
@@ -848,8 +823,8 @@
             const id = document.getElementById('editMaterialId').value;
             const data = {
                 title: document.getElementById('editTitle').value,
-                type: document.getElementById('editType').value,
-                semester: document.getElementById('editSemester').value,
+
+                
                 subject: document.getElementById('editSubject').value,
                 description: document.getElementById('editDescription').value
             };

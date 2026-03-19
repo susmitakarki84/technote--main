@@ -483,7 +483,6 @@ app.get('/materials/:id', async (req, res) => {
         });
     }
 });
-
 // ============= ADMIN: APPROVE/REJECT MATERIAL =============
 
 app.patch('/materials/:id/status', authMiddleware, async (req, res) => {
