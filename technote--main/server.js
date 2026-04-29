@@ -1,15 +1,19 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // इमेल/पासवर्डको लागि
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
+const { OAuth2Client } = require('google-auth-library'); // गुगल लगइनको लागि
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Google OAuth Client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -49,7 +53,9 @@ const upload = multer({
     }
 });
 
-// ============= AUTH ROUTES =============
+// ==========================================
+// १. इमेल र पासवर्ड लगइन (पुरानो)
+// ==========================================
 
 app.post('/login', async (req, res) => {
     try {
@@ -63,6 +69,15 @@ app.post('/login', async (req, res) => {
         }
 
         const user = await AuthUser.findOne({ email });
+        
+        // यदि गुगलबाट बनेको अकाउन्ट हो र पासवर्ड छैन भने रोक्ने
+        if (user && !user.password) {
+             return res.status(401).json({ 
+                 success: false, 
+                 message: 'This account uses Google Login. Please click the Google button below.' 
+             });
+        }
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -89,15 +104,14 @@ app.post('/login', async (req, res) => {
 
             // Lockout after 5 failed attempts with exponential backoff
             if (user.loginAttempts >= 5) {
-                const attemptCount = Math.floor((user.loginAttempts - 1) / 5); // 0 for first 5 attempts, 1 for next 5, etc.
-                const baseLockTime = 300; // 5 minutes for first lockout
-                const lockSeconds = baseLockTime * Math.pow(2, attemptCount); // Double lock time each time
+                const attemptCount = Math.floor((user.loginAttempts - 1) / 5);
+                const baseLockTime = 300; // 5 minutes
+                const lockSeconds = baseLockTime * Math.pow(2, attemptCount);
                 user.lockUntil = new Date(now.getTime() + lockSeconds * 1000);
             }
 
             await user.save();
 
-            // Calculate remaining attempts
             const remainingAttempts = Math.max(0, 5 - (user.loginAttempts % 5 || 5));
             let message = 'Invalid email or password';
             if (remainingAttempts <= 2) {
@@ -133,18 +147,12 @@ app.post('/login', async (req, res) => {
             success: true,
             message: 'Login successful',
             token: token,
-            user: {
-                email: user.email,
-                role: user.role
-            }
+            user: { email: user.email, role: user.role }
         });
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -153,204 +161,187 @@ app.post('/register', async (req, res) => {
         const { email, password, role = 'user' } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide both email and password'
-            });
+            return res.status(400).json({ success: false, message: 'Please provide both email and password' });
         }
 
         const existingUser = await AuthUser.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email already exists'
-            });
+            return res.status(400).json({ success: false, message: 'Email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const user = new AuthUser({
-            email,
-            password: hashedPassword,
-            role
+            email, password: hashedPassword, role
         });
 
         await user.save();
 
-        res.status(201).json({
-            success: true,
-            message: 'User registered successfully',
-            role: user.role
-        });
+        res.status(201).json({ success: true, message: 'User registered successfully', role: user.role });
 
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ============= MATERIAL UPLOAD ROUTE (Protected) =============
+// ==========================================
+// २. गुगल लगइन (नयाँ)
+// ==========================================
 
+app.post('/google-login', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'No token provided' });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        
+        const payload = ticket.getPayload();
+        const { email, name, picture } = payload;
+
+        let user = await AuthUser.findOne({ email });
+        
+        if (!user) {
+            user = new AuthUser({
+                email: email, role: 'user', name: name, profilePicture: picture
+            });
+            await user.save();
+        }
+
+        const now = new Date();
+        if (user.lockUntil && now < user.lockUntil) {
+            const timeLeft = Math.ceil((user.lockUntil - now) / 1000);
+            return res.status(429).json({ success: false, message: `Account locked. Please try again in ${timeLeft} seconds.` });
+        }
+
+        const authToken = jwt.sign(
+            { userId: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET, { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true, message: 'Login successful', token: authToken,
+            user: { email: user.email, role: user.role }
+        });
+
+    } catch (error) {
+        console.error('Google Login error:', error);
+        res.status(401).json({ success: false, message: 'Invalid Google authentication' });
+    }
+});
+
+// ==========================================
+// ३. तपाईंका पुराना सबै API Routes जस्ताको तस्तै 
+// ==========================================
+
+// ============= MATERIAL UPLOAD ROUTE (Protected) =============
 app.post('/upload-material', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { title, type, semester, subject, description } = req.body;
 
-        // Validate required fields
         if (!title || !type || !semester || !subject) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide all required fields'
-            });
+            return res.status(400).json({ success: false, message: 'Please provide all required fields' });
         }
 
         if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please upload a PDF file'
-            });
+            return res.status(400).json({ success: false, message: 'Please upload a PDF file' });
         }
 
-        // Upload to Supabase (PDF files only)
         const fileName = `${Date.now()}-${req.file.originalname}`;
         const bucketName = process.env.SUPABASE_BUCKET || 'Tech note Org';
         
         const { data: supabaseData, error: supabaseError } = await supabase.storage
             .from(bucketName)
             .upload(fileName, req.file.buffer, {
-                contentType: 'application/pdf',
-                upsert: false
+                contentType: 'application/pdf', upsert: false
             });
 
         if (supabaseError) {
             console.error('Supabase upload error:', supabaseError);
-            return res.status(500).json({
-                success: false,
-                message: 'Error uploading file to storage'
-            });
+            return res.status(500).json({ success: false, message: 'Error uploading file to storage' });
         }
 
-        // Get public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(fileName);
+            .from(bucketName).getPublicUrl(fileName);
 
         const fileUrl = publicUrl;
 
-        // Create new user upload with uploader info
         const userUpload = new UserUpload({
-            title,
-            type,
-            semester,
-            subject,
-            description,
-            fileName: req.file.originalname,
-            fileUrl: fileUrl,
-            uploaderEmail: req.user.email,
-            uploaderId: req.user.userId,
-            status: 'pending' // Default status is pending
+            title, type, semester, subject, description,
+            fileName: req.file.originalname, fileUrl: fileUrl,
+            uploaderEmail: req.user.email, uploaderId: req.user.userId,
+            status: 'pending' 
         });
 
         await userUpload.save();
 
         res.status(201).json({
-            success: true,
-            message: 'Material uploaded successfully and is pending approval',
-            material: {
-                id: userUpload._id,
-                title: userUpload.title,
-                status: userUpload.status,
-                uploaderEmail: userUpload.uploaderEmail
-            }
+            success: true, message: 'Material uploaded successfully and is pending approval',
+            material: { id: userUpload._id, title: userUpload.title, status: userUpload.status, uploaderEmail: userUpload.uploaderEmail }
         });
 
     } catch (error) {
         console.error('Upload error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error uploading material'
-        });
+        res.status(500).json({ success: false, message: 'Error uploading material' });
     }
 });
 
 // ============= GET MY UPLOADS (Protected) =============
-
 app.get('/my-materials', authMiddleware, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        // Get all materials from both collections with all statuses
         const [userUploads, materials] = await Promise.all([
-            UserUpload.find({
-                uploaderId: req.user.userId
-            }).sort({ uploadedAt: -1 }),
-            Material.find({
-                uploaderId: req.user.userId
-            }).sort({ uploadedAt: -1 })
+            UserUpload.find({ uploaderId: req.user.userId }).sort({ uploadedAt: -1 }),
+            Material.find({ uploaderId: req.user.userId }).sort({ uploadedAt: -1 })
         ]);
 
-        // Combine and sort all materials
         const allMaterials = [...userUploads, ...materials].sort((a, b) =>
             new Date(b.uploadedAt) - new Date(a.uploadedAt)
         );
 
-        // Apply pagination
         const paginatedMaterials = allMaterials.slice(skip, skip + limit);
         const totalCount = allMaterials.length;
         const totalPages = Math.ceil(totalCount / limit);
 
         res.json({
-            success: true,
-            data: paginatedMaterials,
+            success: true, data: paginatedMaterials,
             pagination: {
-                currentPage: page,
-                totalPages: totalPages,
-                totalItems: totalCount,
-                itemsPerPage: limit,
-                hasNextPage: page < totalPages,
-                hasPreviousPage: page > 1
+                currentPage: page, totalPages: totalPages, totalItems: totalCount, itemsPerPage: limit,
+                hasNextPage: page < totalPages, hasPreviousPage: page > 1
             }
         });
 
     } catch (error) {
         console.error('Error fetching my materials:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching materials'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching materials' });
     }
 });
 
 // ============= UPDATE MATERIAL (Protected - Only Owner) =============
-
 app.put('/materials/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, type, semester, subject, description } = req.body;
 
-        // Find user upload
         const userUpload = await UserUpload.findById(id);
 
         if (!userUpload) {
-            return res.status(404).json({
-                success: false,
-                message: 'Material not found'
-            });
+            return res.status(404).json({ success: false, message: 'Material not found' });
         }
 
-        // Check if user is the owner
         if (userUpload.uploaderId.toString() !== req.user.userId) {
-            return res.status(403).json({
-                success: false,
-                message: 'You are not authorized to update this material'
-            });
+            return res.status(403).json({ success: false, message: 'You are not authorized to update this material' });
         }
 
-        // Update fields
         if (title) userUpload.title = title;
         if (type) userUpload.type = type;
         if (semester) userUpload.semester = semester;
@@ -359,80 +350,54 @@ app.put('/materials/:id', authMiddleware, async (req, res) => {
 
         await userUpload.save();
 
-        res.json({
-            success: true,
-            message: 'Material updated successfully',
-            material: userUpload
-        });
+        res.json({ success: true, message: 'Material updated successfully', material: userUpload });
 
     } catch (error) {
         console.error('Error updating material:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error updating material'
-        });
+        res.status(500).json({ success: false, message: 'Error updating material' });
     }
 });
 
 // ============= DELETE MATERIAL (Protected - Only Owner) =============
-
 app.delete('/materials/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-
-        // Find user upload
         const userUpload = await UserUpload.findById(id);
 
         if (!userUpload) {
-            return res.status(404).json({
-                success: false,
-                message: 'Material not found'
-            });
+            return res.status(404).json({ success: false, message: 'Material not found' });
         }
 
-        // Check if user is the owner
         if (userUpload.uploaderId.toString() !== req.user.userId) {
-            return res.status(403).json({
-                success: false,
-                message: 'You are not authorized to delete this material'
-            });
+            return res.status(403).json({ success: false, message: 'You are not authorized to delete this material' });
         }
 
         await UserUpload.findByIdAndDelete(id);
 
-        res.json({
-            success: true,
-            message: 'Material deleted successfully'
-        });
+        res.json({ success: true, message: 'Material deleted successfully' });
 
     } catch (error) {
         console.error('Error deleting material:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error deleting material'
-        });
+        res.status(500).json({ success: false, message: 'Error deleting material' });
     }
 });
 
 // ============= GET ALL APPROVED MATERIALS (Public) =============
-
 app.get('/materials', async (req, res) => {
     try {
         const semester = req.query.semester;
-        const materialFilter = semester ? { semester: semester } : {}; // Material collection has no status field
-        const userUploadFilter = { status: 'approved' }; // UserUpload collection has status field
+        const materialFilter = semester ? { semester: semester } : {}; 
+        const userUploadFilter = { status: 'approved' }; 
 
         if (semester) {
             userUploadFilter.semester = semester;
         }
 
-        // Get materials from both collections
         const [materialsFromMaterial, materialsFromUserUpload] = await Promise.all([
             Material.find(materialFilter).sort({ uploadedAt: -1 }),
             UserUpload.find(userUploadFilter).sort({ uploadedAt: -1 })
         ]);
 
-        // Combine and sort all materials
         const allMaterials = [...materialsFromMaterial, ...materialsFromUserUpload].sort((a, b) =>
             new Date(b.uploadedAt) - new Date(a.uploadedAt)
         );
@@ -441,111 +406,71 @@ app.get('/materials', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching materials:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error while fetching materials'
-        });
+        res.status(500).json({ success: false, message: 'Server error while fetching materials' });
     }
 });
 
 // ============= GET SINGLE MATERIAL BY ID =============
-
 app.get('/materials/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid material ID'
-            });
+            return res.status(400).json({ success: false, message: 'Invalid material ID' });
         }
 
         const material = await UserUpload.findById(id);
 
         if (!material) {
-            return res.status(404).json({
-                success: false,
-                message: 'Material not found'
-            });
+            return res.status(404).json({ success: false, message: 'Material not found' });
         }
 
-        res.json({
-            success: true,
-            data: material
-        });
+        res.json({ success: true, data: material });
 
     } catch (error) {
         console.error('Error fetching material:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error while fetching material'
-        });
+        res.status(500).json({ success: false, message: 'Server error while fetching material' });
     }
 });
-// ============= ADMIN: APPROVE/REJECT MATERIAL =============
+
 
 app.patch('/materials/:id/status', authMiddleware, async (req, res) => {
     try {
-        // Check if user is admin
         if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Only admins can approve/reject materials'
-            });
+            return res.status(403).json({ success: false, message: 'Only admins can approve/reject materials' });
         }
 
         const { id } = req.params;
         const { status } = req.body;
 
         if (!['approved', 'rejected', 'pending'].includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid status. Must be: approved, rejected, or pending'
-            });
+            return res.status(400).json({ success: false, message: 'Invalid status. Must be: approved, rejected, or pending' });
         }
 
         const userUpload = await UserUpload.findByIdAndUpdate(
-            id,
-            { status: status },
-            { new: true }
+            id, { status: status }, { new: true }
         );
 
         if (!userUpload) {
-            return res.status(404).json({
-                success: false,
-                message: 'Material not found'
-            });
+            return res.status(404).json({ success: false, message: 'Material not found' });
         }
 
-        res.json({
-            success: true,
-            message: `Material ${status} successfully`,
-            material: userUpload
-        });
+        res.json({ success: true, message: `Material ${status} successfully`, material: userUpload });
 
     } catch (error) {
         console.error('Error updating material status:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error updating material status'
-        });
+        res.status(500).json({ success: false, message: 'Error updating material status' });
     }
 });
 
 // ============= ADMIN: GET ALL MATERIALS (Including Pending) =============
-
 app.get('/admin/materials', authMiddleware, async (req, res) => {
     try {
-        // Check if user is admin
         if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Admin access required'
-            });
+            return res.status(403).json({ success: false, message: 'Admin access required' });
         }
 
-        const status = req.query.status; // pending, approved, rejected
+        const status = req.query.status; 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
@@ -564,25 +489,16 @@ app.get('/admin/materials', authMiddleware, async (req, res) => {
         const totalPages = Math.ceil(totalCount / limit);
 
         res.json({
-            success: true,
-            data: materials,
-            pagination: {
-                currentPage: page,
-                totalPages: totalPages,
-                totalItems: totalCount,
-                itemsPerPage: limit
-            }
+            success: true, data: materials,
+            pagination: { currentPage: page, totalPages: totalPages, totalItems: totalCount, itemsPerPage: limit }
         });
 
     } catch (error) {
         console.error('Error fetching admin materials:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching materials'
-        });
+        res.status(500).json({ success: false, message: 'Error fetching materials' });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-}); 
+});

@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <title>Login System | TechNoteCore</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="favicon.ico" type="image/x-icon">
-</head>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
 
+    .divider {
+      text-align: center;
+      margin: 15px 0;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
+</head>
 <body>
   <div class="container">
     <div class="left">
@@ -17,12 +25,10 @@
       </div>
     </div>
     <div class="right">
-      
       <div class="login-card">
-       
+        
         <p id="error-msg" style="color: red; display: none; margin-bottom: 10px; font-weight: bold;"></p>
-        <p id="success-msg" style="color: green; display: none; margin-bottom: 10px; font-weight: bold;">Login
-          successful! Redirecting...</p>
+        <p id="success-msg" style="color: green; display: none; margin-bottom: 10px; font-weight: bold;"></p>
 
         <form id="loginForm">
           <label>Email Address</label>
@@ -31,6 +37,26 @@
           <input type="password" id="password" placeholder="Enter your password" required />
           <button type="submit" id="loginBtn">Sign In</button>
         </form>
+
+        <div class="divider">OR</div>
+
+        <div id="g_id_onload"
+             data-client_id="445257380477-tbb1u24br3rah2jhhkc0edf8aod4gudk.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleGoogleResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="rectangular"
+             data-theme="outline"
+             data-text="signin_with"
+             data-size="large"
+             data-logo_alignment="center"
+             style="display: flex; justify-content: center; width: 100%;">
+        </div>
+
       </div>
     </div>
   </div>
@@ -40,15 +66,21 @@
     const errorMsg = document.getElementById('error-msg');
     const successMsg = document.getElementById('success-msg');
     const loginBtn = document.getElementById('loginBtn');
-
     let countdownInterval;
+
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        window.location.href = "dashboard.html";
+      }
+    });
+
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.style.display = 'none';
       successMsg.style.display = 'none';
-
-      // Disable button during login
       loginBtn.disabled = true;
       loginBtn.textContent = 'Signing in...';
 
@@ -65,66 +97,35 @@
         const data = await response.json();
 
         if (data.success) {
-          // Store authentication token and user information
           localStorage.setItem('authToken', data.token);
           localStorage.setItem('userEmail', data.user.email);
           localStorage.setItem('userRole', data.user.role);
 
-          // Show success message
           successMsg.textContent = 'Login successful! Redirecting...';
           successMsg.style.display = 'block';
 
-          // Redirect based on user role
           setTimeout(() => {
-            if (data.user.role === 'admin' || 'user' || 'superadmin') {
-              window.location.href = "dashboard.html";
-            } else {
-              window.location.href = "dashboard.html";
-            }
+            window.location.href = "dashboard.html";
           }, 1000);
-
         } else {
-          // Show error message with styling based on type
           errorMsg.textContent = data.message || 'Login failed';
-
+          
           if (data.isLocked || response.status === 429) {
-            // Lockout message - red background with bold text
             errorMsg.style.backgroundColor = '#f8d7da';
             errorMsg.style.border = '1px solid #f5c6cb';
             errorMsg.style.padding = '10px';
             errorMsg.style.borderRadius = '5px';
-
-            // If lockout time is provided, show countdown and disable login
-            if (data.lockoutTime) {
-              startCountdown(data.lockoutTime);
-            }
-          } else if (data.remainingAttempts !== undefined) {
-            // Warning message for remaining attempts - yellow background
-            errorMsg.style.backgroundColor = '#fff3cd';
-            errorMsg.style.border = '1px solid #ffeaa7';
-            errorMsg.style.padding = '10px';
-            errorMsg.style.borderRadius = '5px';
-            // Re-enable button
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Sign In';
+            if (data.lockoutTime) startCountdown(data.lockoutTime);
           } else {
-            // Default error message
-            errorMsg.style.backgroundColor = 'transparent';
-            errorMsg.style.border = 'none';
-            errorMsg.style.padding = '0';
-            // Re-enable button
             loginBtn.disabled = false;
             loginBtn.textContent = 'Sign In';
           }
-
           errorMsg.style.display = 'block';
         }
       } catch (err) {
         console.error('Login error:', err);
-        errorMsg.textContent = "Cannot connect to server. Please check if the backend is running.";
+        errorMsg.textContent = "Cannot connect to server.";
         errorMsg.style.display = 'block';
-
-        // Re-enable button
         loginBtn.disabled = false;
         loginBtn.textContent = 'Sign In';
       }
@@ -132,20 +133,16 @@
 
     function startCountdown(seconds) {
       let remainingSeconds = seconds;
-
-      // Disable login form inputs
       document.getElementById('email').disabled = true;
       document.getElementById('password').disabled = true;
       loginBtn.disabled = true;
 
-      // Update countdown every second
       countdownInterval = setInterval(() => {
         remainingSeconds--;
         errorMsg.textContent = `Account locked. Please try again in ${remainingSeconds} seconds.`;
 
         if (remainingSeconds <= 0) {
           clearInterval(countdownInterval);
-          // Re-enable login form
           document.getElementById('email').disabled = false;
           document.getElementById('password').disabled = false;
           loginBtn.disabled = false;
@@ -155,20 +152,44 @@
       }, 1000);
     }
 
-    // Check if user is already logged in
-    window.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('authToken');
-      const userRole = localStorage.getItem('userRole');
+   
 
-      if (token) {
-        if (userRole === 'admin' || 'user' || 'superadmin') {
-          window.location.href = "dashboard.html";
+    
+    async function handleGoogleResponse(response) {
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+      const googleToken = response.credential;
+
+      try {
+        const res = await fetch('http://localhost:5000/google-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: googleToken })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('userEmail', data.user.email);
+          localStorage.setItem('userRole', data.user.role);
+
+          successMsg.textContent = 'Google Login successful! Redirecting...';
+          successMsg.style.display = 'block';
+
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 1000);
         } else {
-          window.location.href = "dashboard.html";
+          errorMsg.textContent = data.message || 'Google Login failed';
+          errorMsg.style.display = 'block';
         }
+      } catch (err) {
+        console.error('Google Login error:', err);
+        errorMsg.textContent = "Cannot connect to server.";
+        errorMsg.style.display = 'block';
       }
-    });
+    }
   </script>
 </body>
-
 </html>

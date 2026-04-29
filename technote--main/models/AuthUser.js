@@ -10,7 +10,15 @@ const AuthUserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        
+        required: false 
+    },
+   
+    name: {
+        type: String
+    },
+    profilePicture: {
+        type: String
     },
     role: {
         type: String,
